@@ -57,12 +57,49 @@ st.sidebar.header("🔍 Filters")
 start_date = st.sidebar.date_input("Start Date", df['Date'].min())
 end_date = st.sidebar.date_input("End Date", df['Date'].max())
 
+metric_option = st.sidebar.selectbox(
+    "Select Metric",
+    ["Total Load", "Net Intake", "Backlog", "CBP Care", "HHS Care"]
+)
+
+time_granularity = st.sidebar.selectbox(
+    "Time Granularity",
+    ["Daily", "Weekly", "Monthly"]
+)
+
 filtered_df = df[(df['Date'] >= pd.to_datetime(start_date)) &
                  (df['Date'] <= pd.to_datetime(end_date))]
 
 if filtered_df.empty:
     st.warning("No data available for selected date range.")
     st.stop()
+
+# Time Granularity Processing
+if time_granularity == "Weekly":
+    display_df = filtered_df.resample('W', on='Date').mean(numeric_only=True).reset_index()
+elif time_granularity == "Monthly":
+    display_df = filtered_df.resample('M', on='Date').mean(numeric_only=True).reset_index()
+else:
+    display_df = filtered_df.copy()
+
+# Early vs Late Timeline Comparison
+midpoint = len(filtered_df) // 2
+early_period = filtered_df.iloc[:midpoint]
+late_period = filtered_df.iloc[midpoint:]
+
+early_avg_load = early_period['Total Load'].mean()
+late_avg_load = late_period['Total Load'].mean()
+
+# High-load threshold detection
+high_load_threshold = filtered_df['Total Load'].quantile(0.90)
+high_load_days = filtered_df[filtered_df['Total Load'] >= high_load_threshold]
+
+# Data Quality & Validation
+missing_dates = pd.date_range(df['Date'].min(), df['Date'].max()).difference(df['Date'])
+duplicate_dates = df[df.duplicated(subset='Date', keep=False)]
+
+invalid_transfers = df[df['Transfers'] > df['CBP Care']]
+invalid_discharges = df[df['Discharges'] > df['HHS Care']]
 
 # KPI Section
 st.subheader("📊 Key Performance Indicators")
@@ -83,22 +120,22 @@ st.subheader("📈 Trends Analysis")
 c1, c2 = st.columns(2)
 
 with c1:
-    st.markdown("### Total System Load")
-    st.line_chart(filtered_df.set_index('Date')['Total Load'])
+    st.markdown(f"### {metric_option} Trend")
+    st.line_chart(display_df.set_index('Date')[metric_option])
 
 with c2:
     st.markdown("### Net Intake")
-    st.line_chart(filtered_df.set_index('Date')['Net Intake'])
+    st.line_chart(display_df.set_index('Date')['Net Intake'])
 
 c3, c4 = st.columns(2)
 
 with c3:
     st.markdown("### Backlog Trend")
-    st.line_chart(filtered_df.set_index('Date')['Backlog'])
+    st.line_chart(display_df.set_index('Date')['Backlog'])
 
 with c4:
     st.markdown("### CBP vs HHS Care")
-    st.line_chart(filtered_df.set_index('Date')[['CBP Care', 'HHS Care']])
+    st.line_chart(display_df.set_index('Date')[['CBP Care', 'HHS Care']])
 
 st.markdown("---")
 
@@ -109,17 +146,50 @@ c5, c6 = st.columns(2)
 
 with c5:
     st.markdown("### Rolling Load Stability")
-    st.line_chart(filtered_df.set_index('Date')[['7-Day Avg Load', '14-Day Avg Load']])
+    st.line_chart(display_df.set_index('Date')[['7-Day Avg Load', '14-Day Avg Load']])
 
 with c6:
     st.markdown("### System Volatility")
-    st.line_chart(filtered_df.set_index('Date')['Volatility'])
+    st.line_chart(display_df.set_index('Date')['Volatility'])
+
+st.markdown("---")
+
+# Trend Comparison & Load Pressure
+st.subheader("📌 Trend Comparison & Load Pressure")
+
+t1, t2, t3 = st.columns(3)
+
+t1.metric("Early Period Avg Load", f"{early_avg_load:,.0f}")
+t2.metric("Late Period Avg Load", f"{late_avg_load:,.0f}")
+t3.metric("High-Load Days", f"{len(high_load_days)}")
+
+st.info(
+    "This section compares early and late timeline system load to evaluate long-term pressure trends. "
+    "High-load days represent periods where total care load exceeded the 90th percentile threshold."
+)
+
+st.markdown("---")
+
+# Data Quality & Validation Section
+st.subheader("🛡️ Data Quality & Validation")
+
+v1, v2, v3, v4 = st.columns(4)
+
+v1.metric("Missing Dates", len(missing_dates))
+v2.metric("Duplicate Dates", len(duplicate_dates))
+v3.metric("Invalid Transfers", len(invalid_transfers))
+v4.metric("Invalid Discharges", len(invalid_discharges))
+
+st.info(
+    "This section validates reporting consistency by checking for missing dates, duplicate entries, "
+    "and logical inconsistencies in transfers and discharges."
+)
 
 st.markdown("---")
 
 # Data Table
 st.subheader("📋 Detailed Data View")
-st.dataframe(filtered_df, use_container_width=True)
+st.dataframe(display_df, use_container_width=True)
 
 # Insights
 st.markdown("## 📌 Key Insights")

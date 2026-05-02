@@ -1,5 +1,5 @@
 ## 🌐 Live Dashboard
-https://uac-analytics-dashboard-hnx7xsnqx4zhkytj2hvieh.streamlit.app/
+https://uac-analytics-dashboard-7n2fd5zh2wmevpuzs3yp3d.streamlit.app/
 
 # UAC System Capacity & Care Load Analytics Dashboard
 

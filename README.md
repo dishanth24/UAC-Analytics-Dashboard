@@ -1,5 +1,5 @@
 ## 🌐 Live Dashboard
-https://uac-analytics-dashboard-6ejjpd3xtz6d3dijjofdcl.streamlit.app/
+
 
 # UAC System Capacity & Care Load Analytics Dashboard
 
@@ -26,10 +26,13 @@ This project analyzes system capacity and care load for unaccompanied children u
 ---
 
 ## 🛠️ Technologies Used
-- Python
-- Pandas
-- Streamlit
-- Matplotlib
+Python
+Pandas
+Streamlit
+Matplotlib
+NumPy
+Plotly
+Streamli
 
 ---
 
